@@ -24,7 +24,7 @@ const int MHZ14A_PREHEATING_TIME = 3 * 60 * 1000;
 const int MHZ19B_PREHEATING_TIME = 3 * 60 * 1000;
 
 const int MHZ14A_RESPONSE_TIME = 60 * 1000;
-const int MHZ19B_RESPONSE_TIME = 120 * 1000;  
+const int MHZ19B_RESPONSE_TIME = 120 * 1000;
 
 const int STATUS_NO_RESPONSE = -2;
 const int STATUS_CHECKSUM_MISMATCH = -3;
@@ -68,7 +68,7 @@ void AirGradient::PMS_Init(int rx_pin,int tx_pin,int baudRate){
   _SoftSerial_PMS->begin(baudRate);
 
   if(getPM2() <= 0){
-    
+
     if (_debugMsg) {
     Serial.println("PMS Sensor Failed to Initialize ");
     }
@@ -77,7 +77,7 @@ void AirGradient::PMS_Init(int rx_pin,int tx_pin,int baudRate){
     delay(10000);
   }
   }
-  
+
 }
 
 
@@ -97,6 +97,18 @@ const char* AirGradient::getPM2(){
   }
 }
 
+int AirGradient::getPM1_Raw(){
+  int pm01;
+  DATA data;
+  requestRead();
+  if (readUntil(data)) {
+    pm01 = data.PM_AE_UG_1_0;
+    return pm01;
+  } else {
+    return 0;
+  }
+}
+
 int AirGradient::getPM2_Raw(){
   int pm02;
   DATA data;
@@ -104,6 +116,18 @@ int AirGradient::getPM2_Raw(){
   if (readUntil(data)) {
     pm02 = data.PM_AE_UG_2_5;
     return pm02;
+  } else {
+    return 0;
+  }
+}
+
+int AirGradient::getPM10_Raw(){
+  int pm10;
+  DATA data;
+  requestRead();
+  if (readUntil(data)) {
+    pm10 = data.PM_AE_UG_10_0;
+    return pm10;
   } else {
     return 0;
   }
@@ -137,7 +161,7 @@ void AirGradient::wakeUp()
 // Active mode. Default mode after power up. In this mode sensor would send serial data to the host automatically.
 void AirGradient::activeMode()
 {
-  
+
   uint8_t command[] = { 0x42, 0x4D, 0xE1, 0x00, 0x01, 0x01, 0x71 };
   _stream->write(command, sizeof(command));
   _mode = MODE_ACTIVE;
@@ -166,7 +190,7 @@ bool AirGradient::read_PMS(DATA& data)
 {
   _data = &data;
   loop();
-  
+
   return _PMSstatus == STATUS_OK;
 }
 
@@ -570,7 +594,7 @@ void AirGradient::CO2_Init(){
 }
 void AirGradient::CO2_Init(int rx_pin,int tx_pin){
   CO2_Init(rx_pin,tx_pin,9600);
-  
+
 }
 void AirGradient::CO2_Init(int rx_pin,int tx_pin,int baudRate){
   if (_debugMsg) {
@@ -622,14 +646,14 @@ int AirGradient::getCO2_Raw(){
         }
     }
 
-    int timeout = 0; 
-    
+    int timeout = 0;
+
     while (_SoftSerial_CO2->available() < 7) {
-        timeout++; 
+        timeout++;
         if (timeout > 10) {
-            while(_SoftSerial_CO2->available())  
+            while(_SoftSerial_CO2->available())
             _SoftSerial_CO2->read();
-            break;                    
+            break;
         }
         delay(50);
     }
@@ -641,11 +665,11 @@ int AirGradient::getCO2_Raw(){
             return -1;
         }
         CO2Response[i] = byte;
-    }  
+    }
     int valMultiplier = 1;
-    int high = CO2Response[3];                      
-    int low = CO2Response[4];                       
-    unsigned long val = high*256 + low;  
+    int high = CO2Response[3];
+    int low = CO2Response[4];
+    unsigned long val = high*256 + low;
 
     return val;
 }
@@ -719,7 +743,7 @@ bool AirGradient::isReady_MHZ19() {
 }
 
 
-int AirGradient::readMHZ19() { 
+int AirGradient::readMHZ19() {
 
   int firstRead = readInternal_MHZ19();
   int secondRead = readInternal_MHZ19();
