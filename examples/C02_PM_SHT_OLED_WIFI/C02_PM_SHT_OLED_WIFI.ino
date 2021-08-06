@@ -33,11 +33,11 @@ MIT License
 #include <Wire.h>
 #include "SSD1306Wire.h"
 
+#include <WiFiClientSecureBearSSL.h>
+
 AirGradient ag = AirGradient();
 
 SSD1306Wire display(0x3c, SDA, SCL);
-
-WiFiClient client;
 
 // set sensors that you do not use to false
 boolean hasPM=true;
@@ -45,10 +45,10 @@ boolean hasCO2=true;
 boolean hasSHT=true;
 
 // set to true if you want to connect to wifi. The display will show values only when the sensor has wifi connection
-boolean connectWIFI=false;
+boolean connectWIFI=true;
 
 // change if you want to send the data to another server
-String APIROOT = "http://hw.airgradient.com/";
+String APIROOT = "https://www.MYINFLUXDB.com/";
 
 void setup(){
   Serial.begin(9600);
@@ -68,43 +68,65 @@ void setup(){
 void loop(){
 
   // create payload
-
-  String payload = "{\"wifi\":" + String(WiFi.RSSI()) + ",";
+  String tags = "id=" + String(ESP.getChipId(),HEX) + ",env=outside";
+  String payload = "wifi," + tags + " rssi=" + String(WiFi.RSSI()) + "\n";
 
   if (hasPM) {
+    // Wake up the sensor and wait 30 seconds before getting data
+    ag.wakeUp();
+    delay(30000);
+
+    // Get PM data
+    int PM1 = ag.getPM1_Raw();
+    payload=payload + "air_quality," + tags + " pm01=" + String(PM1) + "\n";
+    
     int PM2 = ag.getPM2_Raw();
-    payload=payload+"\"pm02\":" + String(PM2);
+    payload=payload + "air_quality," + tags + " pm02=" + String(PM2) + "\n";
+    
+    int PM10 = ag.getPM10_Raw();
+    payload=payload + "air_quality," + tags + " pm10=" + String(PM10) + "\n";
+
+    // Put sensor to sleep again until next loop
+    ag.sleep();
+    showTextRectangle("SLEEP", "30s", true);
+    delay(2000);
+
+    showTextRectangle("PM1",String(PM1),false);
+    delay(5000);
     showTextRectangle("PM2",String(PM2),false);
-    delay(3000);
+    delay(6000);
+    showTextRectangle("PM10",String(PM10),false);
+    delay(6000);    
   }
 
   if (hasCO2) {
-    if (hasPM) payload=payload+",";
     int CO2 = ag.getCO2_Raw();
-    payload=payload+"\"rco2\":" + String(CO2);
+    payload=payload + "air_quality," + tags + " rco2=" + String(CO2) + "\n";
     showTextRectangle("CO2",String(CO2),false);
-    delay(3000);
+    delay(6000);
   }
 
   if (hasSHT) {
-    if (hasCO2 || hasPM) payload=payload+",";
     TMP_RH result = ag.periodicFetchData();
-    payload=payload+"\"atmp\":" + String(result.t) +   ",\"rhum\":" + String(result.rh);
+    payload=payload + "weather," + tags + " atmp=" + String(result.t) + "\n";
+    payload=payload + "weather," + tags + " rhum=" + String(result.rh) + "\n";
     showTextRectangle(String(result.t),String(result.rh)+"%",false);
-    delay(3000);
+    delay(5000);
   }
-
-   payload=payload+"}";
 
   // send payload
   if (connectWIFI){
   Serial.println(payload);
-  String POSTURL = APIROOT + "sensors/airgradient:" + String(ESP.getChipId(),HEX) + "/measures";
+  String POSTURL = APIROOT + "api/v2/write?org=wac&bucket=sensordata&precision=s";
   Serial.println(POSTURL);
-  WiFiClient client;
+
+  // Hack to not check finger prints on https connection
+  std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
+  client->setInsecure();
+  
   HTTPClient http;
-  http.begin(client, POSTURL);
-  http.addHeader("content-type", "application/json");
+  http.begin(*client, POSTURL);
+  http.addHeader("Authorization", "Token TOKENHERE");
   int httpCode = http.POST(payload);
   String response = http.getString();
   Serial.println(httpCode);
