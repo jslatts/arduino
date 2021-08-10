@@ -3,7 +3,6 @@
   Copyright (c) 2006 John Doe.  All right reserved.
 */
 
-
 // include this library's description file
 #include "AirGradient.h"
 
@@ -12,7 +11,6 @@
 #include "Arduino.h"
 #include <Wire.h>
 #include <math.h>
-
 
 // Constructor /////////////////////////////////////////////////////////////////
 // Function that handles the creation and setup of instances
@@ -38,56 +36,65 @@ unsigned long lastRequest = 0;
 bool SerialConfigured = true;
 bool PwmConfigured = true;
 
-
-AirGradient::AirGradient(bool displayMsg,int baudRate)
+AirGradient::AirGradient(bool displayMsg, int baudRate)
 {
   _debugMsg = displayMsg;
   Wire.begin();
   Serial.begin(baudRate);
-   if (_debugMsg) {
+  if (_debugMsg)
+  {
     Serial.println("AirGradiant Library instantiated successfully.");
-    }
+  }
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
 // Functions available in Wiring sketches, this library, and other libraries
 
-
-void AirGradient::PMS_Init(){
-  if (_debugMsg) {
+void AirGradient::PMS_Init()
+{
+  if (_debugMsg)
+  {
     Serial.println("Initializing PMS...");
-    }
-  PMS_Init(D5,D6);
+  }
+  PMS_Init(D5, D6);
 }
-void AirGradient::PMS_Init(int rx_pin,int tx_pin){
-  PMS_Init(rx_pin,tx_pin,9600);
+
+void AirGradient::PMS_Init(int rx_pin, int tx_pin)
+{
+  PMS_Init(rx_pin, tx_pin, 9600);
 }
-void AirGradient::PMS_Init(int rx_pin,int tx_pin,int baudRate){
-  _SoftSerial_PMS = new SoftwareSerial(rx_pin,tx_pin);
+
+void AirGradient::PMS_Init(int rx_pin, int tx_pin, int baudRate)
+{
+  _SoftSerial_PMS = new SoftwareSerial(rx_pin, tx_pin);
   PMS(*_SoftSerial_PMS);
   _SoftSerial_PMS->begin(baudRate);
 
-  if(getPM2() <= 0){
+  if (getPM2() <= 0)
+  {
 
-    if (_debugMsg) {
-    Serial.println("PMS Sensor Failed to Initialize ");
+    if (_debugMsg)
+    {
+      Serial.println("PMS Sensor Failed to Initialize ");
     }
-    else{
-    Serial.println("PMS Successfully Initialized. Heating up for 10s");
-    delay(10000);
+    else
+    {
+      Serial.println("PMS Successfully Initialized. Heating up for 10s");
+      delay(10000);
+    }
   }
-  }
-
 }
 
-
-
-const char* AirGradient::getPM2(){
-  if (getPM2_Raw()) {
+const char *AirGradient::getPM2()
+{
+  if (getPM2_Raw())
+  {
     int result_raw = getPM2_Raw();
-    sprintf(Char_PM2,"%d", result_raw);
+    sprintf(Char_PM2, "%d", result_raw);
     return Char_PM2;
-  } else {
+  }
+  else
+  {
     //Serial.println("no PMS data");
     Char_PM2[0] = 'N';
     Char_PM2[1] = 'U';
@@ -97,49 +104,71 @@ const char* AirGradient::getPM2(){
   }
 }
 
-int AirGradient::getPM1_Raw(){
+int AirGradient::getPM1_Raw()
+{
   int pm01;
-  DATA data;
+  PMS_DATA data;
   requestRead();
-  if (readUntil(data)) {
+  if (readUntil(data))
+  {
     pm01 = data.PM_AE_UG_1_0;
     return pm01;
-  } else {
+  }
+  else
+  {
     return 0;
   }
 }
 
-int AirGradient::getPM2_Raw(){
+int AirGradient::getPM2_Raw()
+{
   int pm02;
-  DATA data;
+  PMS_DATA data;
   requestRead();
-  if (readUntil(data)) {
+  if (readUntil(data))
+  {
     pm02 = data.PM_AE_UG_2_5;
     return pm02;
-  } else {
+  }
+  else
+  {
     return 0;
   }
 }
 
-int AirGradient::getPM10_Raw(){
+int AirGradient::getPM10_Raw()
+{
   int pm10;
-  DATA data;
+  PMS_DATA data;
   requestRead();
-  if (readUntil(data)) {
+  if (readUntil(data))
+  {
     pm10 = data.PM_AE_UG_10_0;
     return pm10;
-  } else {
+  }
+  else
+  {
     return 0;
   }
 }
 
+PMS_DATA AirGradient::getPMS_Data()
+{
+  PMS_DATA data;
+  requestRead();
+  if (readUntil(data))
+  {
+    data.success = true; // Indicate successful read, otherwise the caller will want to ignore the result
+  }
+  return data;
+}
 
 // Private Methods /////////////////////////////////////////////////////////////
 // Functions only available to other functions in this library
 
 //START PMS FUNCTIONS //
 
-void AirGradient::PMS(Stream& stream)
+void AirGradient::PMS(Stream &stream)
 {
   this->_stream = &stream;
 }
@@ -147,14 +176,14 @@ void AirGradient::PMS(Stream& stream)
 // Standby mode. For low power consumption and prolong the life of the sensor.
 void AirGradient::sleep()
 {
-  uint8_t command[] = { 0x42, 0x4D, 0xE4, 0x00, 0x00, 0x01, 0x73 };
+  uint8_t command[] = {0x42, 0x4D, 0xE4, 0x00, 0x00, 0x01, 0x73};
   _stream->write(command, sizeof(command));
 }
 
 // Operating mode. Stable data should be got at least 30 seconds after the sensor wakeup from the sleep mode because of the fan's performance.
 void AirGradient::wakeUp()
 {
-  uint8_t command[] = { 0x42, 0x4D, 0xE4, 0x00, 0x01, 0x01, 0x74 };
+  uint8_t command[] = {0x42, 0x4D, 0xE4, 0x00, 0x01, 0x01, 0x74};
   _stream->write(command, sizeof(command));
 }
 
@@ -162,7 +191,7 @@ void AirGradient::wakeUp()
 void AirGradient::activeMode()
 {
 
-  uint8_t command[] = { 0x42, 0x4D, 0xE1, 0x00, 0x01, 0x01, 0x71 };
+  uint8_t command[] = {0x42, 0x4D, 0xE1, 0x00, 0x01, 0x01, 0x71};
   _stream->write(command, sizeof(command));
   _mode = MODE_ACTIVE;
 }
@@ -170,7 +199,7 @@ void AirGradient::activeMode()
 // Passive mode. In this mode sensor would send serial data to the host only for request.
 void AirGradient::passiveMode()
 {
-  uint8_t command[] = { 0x42, 0x4D, 0xE1, 0x00, 0x00, 0x01, 0x70 };
+  uint8_t command[] = {0x42, 0x4D, 0xE1, 0x00, 0x00, 0x01, 0x70};
   _stream->write(command, sizeof(command));
   _mode = MODE_PASSIVE;
 }
@@ -180,13 +209,13 @@ void AirGradient::requestRead()
 {
   if (_mode == MODE_PASSIVE)
   {
-    uint8_t command[] = { 0x42, 0x4D, 0xE2, 0x00, 0x00, 0x01, 0x71 };
+    uint8_t command[] = {0x42, 0x4D, 0xE2, 0x00, 0x00, 0x01, 0x71};
     _stream->write(command, sizeof(command));
   }
 }
 
 // Non-blocking function for parse response.
-bool AirGradient::read_PMS(DATA& data)
+bool AirGradient::read_PMS(PMS_DATA &data)
 {
   _data = &data;
   loop();
@@ -195,14 +224,15 @@ bool AirGradient::read_PMS(DATA& data)
 }
 
 // Blocking function for parse response. Default timeout is 1s.
-bool AirGradient::readUntil(DATA& data, uint16_t timeout)
+bool AirGradient::readUntil(PMS_DATA &data, uint16_t timeout)
 {
   _data = &data;
   uint32_t start = millis();
   do
   {
     loop();
-    if (_PMSstatus == STATUS_OK) break;
+    if (_PMSstatus == STATUS_OK)
+      break;
   } while (millis() - start < timeout);
 
   return _PMSstatus == STATUS_OK;
@@ -300,10 +330,12 @@ void AirGradient::loop()
 
 //START TMP_RH FUNCTIONS//
 
-TMP_RH_ErrorCode AirGradient::TMP_RH_Init(uint8_t address) {
-  if (_debugMsg) {
+TMP_RH_ErrorCode AirGradient::TMP_RH_Init(uint8_t address)
+{
+  if (_debugMsg)
+  {
     Serial.println("Initializing TMP_RH...");
-    }
+  }
   TMP_RH_ErrorCode error = SHT3XD_NO_ERROR;
   _address = address;
   periodicStart(SHT3XD_REPEATABILITY_HIGH, SHT3XD_FREQUENCY_10HZ);
@@ -312,17 +344,18 @@ TMP_RH_ErrorCode AirGradient::TMP_RH_Init(uint8_t address) {
 
 TMP_RH_ErrorCode AirGradient::reset()
 {
-  return  softReset();
+  return softReset();
 }
 
 TMP_RH AirGradient::periodicFetchData() //
 {
   TMP_RH result;
   TMP_RH_ErrorCode error = writeCommand(SHT3XD_CMD_FETCH_DATA);
-  if (error == SHT3XD_NO_ERROR){
+  if (error == SHT3XD_NO_ERROR)
+  {
     result = readTemperatureAndHumidity();
-    sprintf(result.t_char,"%d", result.t);
-    sprintf(result.rh_char,"%f", result.rh);
+    sprintf(result.t_char, "%d", result.t);
+    sprintf(result.rh_char, "%f", result.rh);
 
     return result;
   }
@@ -330,7 +363,8 @@ TMP_RH AirGradient::periodicFetchData() //
     returnError(error);
 }
 
-TMP_RH_ErrorCode AirGradient::periodicStop() {
+TMP_RH_ErrorCode AirGradient::periodicStop()
+{
   return writeCommand(SHT3XD_CMD_STOP_PERIODIC);
 }
 
@@ -420,7 +454,6 @@ TMP_RH_ErrorCode AirGradient::periodicStart(TMP_RH_Repeatability repeatability, 
   return error;
 }
 
-
 TMP_RH_ErrorCode AirGradient::writeCommand(TMP_RH_Commands command)
 {
   Wire.beginTransmission(_address);
@@ -429,26 +462,29 @@ TMP_RH_ErrorCode AirGradient::writeCommand(TMP_RH_Commands command)
   return (TMP_RH_ErrorCode)(-10 * Wire.endTransmission());
 }
 
-TMP_RH_ErrorCode AirGradient::softReset() {
+TMP_RH_ErrorCode AirGradient::softReset()
+{
   return writeCommand(SHT3XD_CMD_SOFT_RESET);
 }
-
 
 uint32_t AirGradient::readSerialNumber()
 {
   uint32_t result = SHT3XD_NO_ERROR;
   uint16_t buf[2];
 
-  if (writeCommand(SHT3XD_CMD_READ_SERIAL_NUMBER) == SHT3XD_NO_ERROR) {
-    if (read_TMP_RH(buf, 2) == SHT3XD_NO_ERROR) {
+  if (writeCommand(SHT3XD_CMD_READ_SERIAL_NUMBER) == SHT3XD_NO_ERROR)
+  {
+    if (read_TMP_RH(buf, 2) == SHT3XD_NO_ERROR)
+    {
       result = (buf[0] << 16) | buf[1];
     }
   }
-  else if(writeCommand(SHT3XD_CMD_READ_SERIAL_NUMBER) != SHT3XD_NO_ERROR){
-    if (_debugMsg) {
-    Serial.println("TMP_RH Failed to Initialize.");
+  else if (writeCommand(SHT3XD_CMD_READ_SERIAL_NUMBER) != SHT3XD_NO_ERROR)
+  {
+    if (_debugMsg)
+    {
+      Serial.println("TMP_RH Failed to Initialize.");
     }
-
   }
 
   return result;
@@ -458,32 +494,35 @@ uint32_t AirGradient::testTMP_RH()
   uint32_t result = SHT3XD_NO_ERROR;
   uint16_t buf[2];
 
-  if (writeCommand(SHT3XD_CMD_READ_SERIAL_NUMBER) == SHT3XD_NO_ERROR) {
-    if (read_TMP_RH(buf, 2) == SHT3XD_NO_ERROR) {
+  if (writeCommand(SHT3XD_CMD_READ_SERIAL_NUMBER) == SHT3XD_NO_ERROR)
+  {
+    if (read_TMP_RH(buf, 2) == SHT3XD_NO_ERROR)
+    {
       result = (buf[0] << 16) | buf[1];
     }
-    if (_debugMsg) {
-    Serial.print("TMP_RH successfully initialized with serial number: ");
-    Serial.println(result);
+    if (_debugMsg)
+    {
+      Serial.print("TMP_RH successfully initialized with serial number: ");
+      Serial.println(result);
     }
-
   }
-  else if(writeCommand(SHT3XD_CMD_READ_SERIAL_NUMBER) != SHT3XD_NO_ERROR){
-    if (_debugMsg) {
-    Serial.println("TMP_RH Failed to Initialize.");
+  else if (writeCommand(SHT3XD_CMD_READ_SERIAL_NUMBER) != SHT3XD_NO_ERROR)
+  {
+    if (_debugMsg)
+    {
+      Serial.println("TMP_RH Failed to Initialize.");
     }
-
   }
 
   return result;
 }
 
-TMP_RH_ErrorCode AirGradient::clearAll() {
+TMP_RH_ErrorCode AirGradient::clearAll()
+{
   return writeCommand(SHT3XD_CMD_CLEAR_STATUS);
 }
 
-
-TMP_RH AirGradient::readTemperatureAndHumidity()//
+TMP_RH AirGradient::readTemperatureAndHumidity() //
 {
   TMP_RH result;
 
@@ -496,7 +535,8 @@ TMP_RH AirGradient::readTemperatureAndHumidity()//
   if (error == SHT3XD_NO_ERROR)
     error = read_TMP_RH(buf, 2);
 
-  if (error == SHT3XD_NO_ERROR) {
+  if (error == SHT3XD_NO_ERROR)
+  {
     result.t = calculateTemperature(buf[0]);
     result.rh = calculateHumidity(buf[1]);
   }
@@ -505,7 +545,7 @@ TMP_RH AirGradient::readTemperatureAndHumidity()//
   return result;
 }
 
-TMP_RH_ErrorCode AirGradient::read_TMP_RH(uint16_t* data, uint8_t numOfPair)//
+TMP_RH_ErrorCode AirGradient::read_TMP_RH(uint16_t *data, uint8_t numOfPair) //
 {
   uint8_t buf[2];
   uint8_t checksum;
@@ -515,7 +555,8 @@ TMP_RH_ErrorCode AirGradient::read_TMP_RH(uint16_t* data, uint8_t numOfPair)//
 
   int counter = 0;
 
-  for (counter = 0; counter < numOfPair; counter++) {
+  for (counter = 0; counter < numOfPair; counter++)
+  {
     Wire.readBytes(buf, (uint8_t)2);
     checksum = Wire.read();
 
@@ -528,20 +569,18 @@ TMP_RH_ErrorCode AirGradient::read_TMP_RH(uint16_t* data, uint8_t numOfPair)//
   return SHT3XD_NO_ERROR;
 }
 
-
-uint8_t AirGradient::checkCrc(uint8_t data[], uint8_t checksum)//
+uint8_t AirGradient::checkCrc(uint8_t data[], uint8_t checksum) //
 {
   return calculateCrc(data) != checksum;
 }
 
-float AirGradient::calculateTemperature(uint16_t rawValue)//
+float AirGradient::calculateTemperature(uint16_t rawValue) //
 {
   float value = 175.0f * (float)rawValue / 65535.0f - 45.0f;
-  return round(value*10)/10;
+  return round(value * 10) / 10;
 }
 
-
-float AirGradient::calculateHumidity(uint16_t rawValue)//
+float AirGradient::calculateHumidity(uint16_t rawValue) //
 {
   return 100.0f * rawValue / 65535.0f;
 }
@@ -567,7 +606,8 @@ uint8_t AirGradient::calculateCrc(uint8_t data[])
   return crc;
 }
 
-TMP_RH AirGradient::returnError(TMP_RH_ErrorCode error) {
+TMP_RH AirGradient::returnError(TMP_RH_ErrorCode error)
+{
   TMP_RH result;
   result.t = NULL;
   result.rh = NULL;
@@ -589,36 +629,45 @@ TMP_RH AirGradient::returnError(TMP_RH_ErrorCode error) {
 //END TMP_RH FUNCTIONS //
 
 //START CO2 FUNCTIONS //
-void AirGradient::CO2_Init(){
-  CO2_Init(D4,D3);
+void AirGradient::CO2_Init()
+{
+  CO2_Init(D4, D3);
 }
-void AirGradient::CO2_Init(int rx_pin,int tx_pin){
-  CO2_Init(rx_pin,tx_pin,9600);
-
+void AirGradient::CO2_Init(int rx_pin, int tx_pin)
+{
+  CO2_Init(rx_pin, tx_pin, 9600);
 }
-void AirGradient::CO2_Init(int rx_pin,int tx_pin,int baudRate){
-  if (_debugMsg) {
+void AirGradient::CO2_Init(int rx_pin, int tx_pin, int baudRate)
+{
+  if (_debugMsg)
+  {
     Serial.println("Initializing CO2...");
-    }
-  _SoftSerial_CO2 = new SoftwareSerial(rx_pin,tx_pin);
+  }
+  _SoftSerial_CO2 = new SoftwareSerial(rx_pin, tx_pin);
   _SoftSerial_CO2->begin(baudRate);
 
-  if(getCO2_Raw() == -1){
-    if (_debugMsg) {
-    Serial.println("CO2 Sensor Failed to Initialize ");
+  if (getCO2_Raw() == -1)
+  {
+    if (_debugMsg)
+    {
+      Serial.println("CO2 Sensor Failed to Initialize ");
     }
   }
-  else{
+  else
+  {
     Serial.println("CO2 Successfully Initialized. Heating up for 10s");
     delay(10000);
   }
 }
-const char* AirGradient::getCO2(int retryLimit) {
+const char *AirGradient::getCO2(int retryLimit)
+{
   int ctr = 0;
   int result_CO2 = getCO2_Raw();
-  while(result_CO2 == -1){
+  while (result_CO2 == -1)
+  {
     result_CO2 = getCO2_Raw();
-    if((ctr == retryLimit) || (result_CO2 == -1)){
+    if ((ctr == retryLimit) || (result_CO2 == -1))
+    {
       Char_CO2[0] = 'N';
       Char_CO2[1] = 'U';
       Char_CO2[2] = 'L';
@@ -627,78 +676,92 @@ const char* AirGradient::getCO2(int retryLimit) {
     }
     ctr++;
   }
-  sprintf(Char_CO2,"%d", result_CO2);
+  sprintf(Char_CO2, "%d", result_CO2);
   return Char_CO2;
 }
-int AirGradient::getCO2_Raw(){
+int AirGradient::getCO2_Raw()
+{
   int retry = 0;
-    CO2_READ_RESULT result;
-    const byte CO2Command[] = {0xFE, 0X44, 0X00, 0X08, 0X02, 0X9F, 0X25};
-    byte CO2Response[] = {0,0,0,0,0,0,0};
+  CO2_READ_RESULT result;
+  const byte CO2Command[] = {0xFE, 0X44, 0X00, 0X08, 0X02, 0X9F, 0X25};
+  byte CO2Response[] = {0, 0, 0, 0, 0, 0, 0};
 
-    while(!(_SoftSerial_CO2->available())) {
-        retry++;
-        // keep sending request until we start to get a response
-        _SoftSerial_CO2->write(CO2Command, 7);
-        delay(50);
-        if (retry > 10) {
-            return -1;
-        }
+  while (!(_SoftSerial_CO2->available()))
+  {
+    retry++;
+    // keep sending request until we start to get a response
+    _SoftSerial_CO2->write(CO2Command, 7);
+    delay(50);
+    if (retry > 10)
+    {
+      return -1;
     }
+  }
 
-    int timeout = 0;
+  int timeout = 0;
 
-    while (_SoftSerial_CO2->available() < 7) {
-        timeout++;
-        if (timeout > 10) {
-            while(_SoftSerial_CO2->available())
-            _SoftSerial_CO2->read();
-            break;
-        }
-        delay(50);
+  while (_SoftSerial_CO2->available() < 7)
+  {
+    timeout++;
+    if (timeout > 10)
+    {
+      while (_SoftSerial_CO2->available())
+        _SoftSerial_CO2->read();
+      break;
     }
+    delay(50);
+  }
 
-    for (int i=0; i < 7; i++) {
-        int byte = _SoftSerial_CO2->read();
-        if (byte == -1) {
-            result.success = false;
-            return -1;
-        }
-        CO2Response[i] = byte;
+  for (int i = 0; i < 7; i++)
+  {
+    int byte = _SoftSerial_CO2->read();
+    if (byte == -1)
+    {
+      result.success = false;
+      return -1;
     }
-    int valMultiplier = 1;
-    int high = CO2Response[3];
-    int low = CO2Response[4];
-    unsigned long val = high*256 + low;
+    CO2Response[i] = byte;
+  }
+  int valMultiplier = 1;
+  int high = CO2Response[3];
+  int low = CO2Response[4];
+  unsigned long val = high * 256 + low;
 
-    return val;
+  return val;
 }
 
 //END CO2 FUNCTIONS //
 
 //START MHZ19 FUNCTIONS //
-void AirGradient::MHZ19_Init(uint8_t type) {
-  MHZ19_Init(9,10,type);
+void AirGradient::MHZ19_Init(uint8_t type)
+{
+  MHZ19_Init(9, 10, type);
 }
-void AirGradient::MHZ19_Init(int rx_pin,int tx_pin, uint8_t type) {
-  MHZ19_Init(rx_pin,tx_pin,9600,type);
+void AirGradient::MHZ19_Init(int rx_pin, int tx_pin, uint8_t type)
+{
+  MHZ19_Init(rx_pin, tx_pin, 9600, type);
 }
-void AirGradient::MHZ19_Init(int rx_pin,int tx_pin, int baudRate, uint8_t type) {
-  if (_debugMsg) {
-      Serial.println("Initializing MHZ19...");
-      }
-    _SoftSerial_MHZ19 = new SoftwareSerial(rx_pin,tx_pin);
-    _SoftSerial_MHZ19->begin(baudRate);
+void AirGradient::MHZ19_Init(int rx_pin, int tx_pin, int baudRate, uint8_t type)
+{
+  if (_debugMsg)
+  {
+    Serial.println("Initializing MHZ19...");
+  }
+  _SoftSerial_MHZ19 = new SoftwareSerial(rx_pin, tx_pin);
+  _SoftSerial_MHZ19->begin(baudRate);
 
-    if(readMHZ19() == -1){
-      if (_debugMsg) {
+  if (readMHZ19() == -1)
+  {
+    if (_debugMsg)
+    {
       Serial.println("MHZ19 Sensor Failed to Initialize ");
-      }
     }
-    else{
-      Serial.println("MHZ19 Successfully Initialized. Heating up for 10s");
-      delay(10000);
-    }
+  }
+  else
+  {
+    Serial.println("MHZ19 Successfully Initialized. Heating up for 10s");
+    delay(10000);
+  }
 
   _type_MHZ19 = type;
 
@@ -708,33 +771,46 @@ void AirGradient::MHZ19_Init(int rx_pin,int tx_pin, int baudRate, uint8_t type) 
 /**
  * Enables or disables the debug mode (more logging).
  */
-void AirGradient::setDebug_MHZ19(bool enable) {
+void AirGradient::setDebug_MHZ19(bool enable)
+{
   debug_MHZ19 = enable;
-  if (debug_MHZ19) {
+  if (debug_MHZ19)
+  {
     Serial.println(F("MHZ: debug mode ENABLED"));
-  } else {
+  }
+  else
+  {
     Serial.println(F("MHZ: debug mode DISABLED"));
   }
 }
 
-bool AirGradient::isPreHeating_MHZ19() {
-  if (_type_MHZ19 == MHZ14A) {
+bool AirGradient::isPreHeating_MHZ19()
+{
+  if (_type_MHZ19 == MHZ14A)
+  {
     return millis() < (MHZ14A_PREHEATING_TIME);
-  } else if (_type_MHZ19 == MHZ19B) {
+  }
+  else if (_type_MHZ19 == MHZ19B)
+  {
     return millis() < (MHZ19B_PREHEATING_TIME);
-  } else {
+  }
+  else
+  {
     Serial.println(F("MHZ::isPreheating_MHZ19() => UNKNOWN SENSOR"));
     return false;
-  }//
+  } //
 }
 
-bool AirGradient::isReady_MHZ19() {
-  if (isPreHeating_MHZ19()) return false;
+bool AirGradient::isReady_MHZ19()
+{
+  if (isPreHeating_MHZ19())
+    return false;
   if (_type_MHZ19 == MHZ14A)
     return lastRequest < millis() - MHZ14A_RESPONSE_TIME;
   else if (_type_MHZ19 == MHZ19B)
     return lastRequest < millis() - MHZ19B_RESPONSE_TIME;
-  else {
+  else
+  {
     Serial.print(F("MHZ::isReady_MHZ19() => UNKNOWN SENSOR \""));
     Serial.print(_type_MHZ19);
     Serial.println(F("\""));
@@ -742,17 +818,18 @@ bool AirGradient::isReady_MHZ19() {
   }
 }
 
-
-int AirGradient::readMHZ19() {
+int AirGradient::readMHZ19()
+{
 
   int firstRead = readInternal_MHZ19();
   int secondRead = readInternal_MHZ19();
 
-  if (abs(secondRead - firstRead) > 50) {
-      // we arrive here sometimes when the CO2 sensor is not connected
-      // could possibly also be fixed with a pull-up resistor on Rx but if we forget this then ...
-      Serial.println("MHZ::read() inconsistent values");
-      return -1;
+  if (abs(secondRead - firstRead) > 50)
+  {
+    // we arrive here sometimes when the CO2 sensor is not connected
+    // could possibly also be fixed with a pull-up resistor on Rx but if we forget this then ...
+    Serial.println("MHZ::read() inconsistent values");
+    return -1;
   }
 
   Serial.println("MHZ::read(1) " + String(firstRead));
@@ -762,41 +839,53 @@ int AirGradient::readMHZ19() {
   return secondRead;
 }
 
-int AirGradient::readInternal_MHZ19() {
-  if (!SerialConfigured) {
-    if (debug_MHZ19) Serial.println(F("-- serial is not configured"));
+int AirGradient::readInternal_MHZ19()
+{
+  if (!SerialConfigured)
+  {
+    if (debug_MHZ19)
+      Serial.println(F("-- serial is not configured"));
     return STATUS_serial_MHZ19_NOT_CONFIGURED;
   }
   // if (!isReady_MHZ19()) return STATUS_NOT_READY;
-  if (debug_MHZ19) Serial.println(F("-- read CO2 uart ---"));
+  if (debug_MHZ19)
+    Serial.println(F("-- read CO2 uart ---"));
   byte cmd[9] = {0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79};
-  unsigned char response[9];  // for answer
+  unsigned char response[9]; // for answer
 
-  if (debug_MHZ19) Serial.print(F("  >> Sending CO2 request"));
-  _SoftSerial_MHZ19->write(cmd, 9);  // request PPM CO2
+  if (debug_MHZ19)
+    Serial.print(F("  >> Sending CO2 request"));
+  _SoftSerial_MHZ19->write(cmd, 9); // request PPM CO2
   lastRequest = millis();
 
   // clear the buffer
   memset(response, 0, 9);
 
   int waited = 0;
-  while (_SoftSerial_MHZ19->available() == 0) {
-    if (debug_MHZ19) Serial.print(".");
-    delay(100);  // wait a short moment to avoid false reading
-    if (waited++ > 10) {
-      if (debug_MHZ19) Serial.println(F("No response after 10 seconds"));
+  while (_SoftSerial_MHZ19->available() == 0)
+  {
+    if (debug_MHZ19)
+      Serial.print(".");
+    delay(100); // wait a short moment to avoid false reading
+    if (waited++ > 10)
+    {
+      if (debug_MHZ19)
+        Serial.println(F("No response after 10 seconds"));
       _SoftSerial_MHZ19->flush();
       return STATUS_NO_RESPONSE;
     }
   }
-  if (debug_MHZ19) Serial.println();
+  if (debug_MHZ19)
+    Serial.println();
 
   // The serial stream can get out of sync. The response starts with 0xff, try
   // to resync.
   // TODO: I think this might be wrong any only happens during initialization?
   boolean skip = false;
-  while (_SoftSerial_MHZ19->available() > 0 && (unsigned char)_SoftSerial_MHZ19->peek() != 0xFF) {
-    if (!skip) {
+  while (_SoftSerial_MHZ19->available() > 0 && (unsigned char)_SoftSerial_MHZ19->peek() != 0xFF)
+  {
+    if (!skip)
+    {
       Serial.print(F("MHZ: - skipping unexpected readings:"));
       skip = true;
     }
@@ -804,23 +893,30 @@ int AirGradient::readInternal_MHZ19() {
     Serial.print(_SoftSerial_MHZ19->peek(), HEX);
     _SoftSerial_MHZ19->read();
   }
-  if (skip) Serial.println();
+  if (skip)
+    Serial.println();
 
-  if (_SoftSerial_MHZ19->available() > 0) {
+  if (_SoftSerial_MHZ19->available() > 0)
+  {
     int count = _SoftSerial_MHZ19->readBytes(response, 9);
-    if (count < 9) {
+    if (count < 9)
+    {
       _SoftSerial_MHZ19->flush();
       return STATUS_INCOMPLETE;
     }
-  } else {
+  }
+  else
+  {
     _SoftSerial_MHZ19->flush();
     return STATUS_INCOMPLETE;
   }
 
-  if (debug_MHZ19) {
+  if (debug_MHZ19)
+  {
     // print out the response in hexa
     Serial.print(F("  << "));
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 9; i++)
+    {
       Serial.print(response[i], HEX);
       Serial.print(F("  "));
     }
@@ -829,7 +925,8 @@ int AirGradient::readInternal_MHZ19() {
 
   // checksum
   byte check = getCheckSum_MHZ19(response);
-  if (response[8] != check) {
+  if (response[8] != check)
+  {
     Serial.println(F("MHZ: Checksum not OK!"));
     Serial.print(F("MHZ: Received: "));
     Serial.println(response[8], HEX);
@@ -842,10 +939,11 @@ int AirGradient::readInternal_MHZ19() {
 
   int ppm_uart = 256 * (unsigned int)response[2] + (unsigned int)response[3];
 
-  temperature_MHZ19 = response[4] - 44;  // - 40;
+  temperature_MHZ19 = response[4] - 44; // - 40;
 
   byte status = response[5];
-  if (debug_MHZ19) {
+  if (debug_MHZ19)
+  {
     Serial.print(F(" # PPM UART: "));
     Serial.println(ppm_uart);
     Serial.print(F(" # temperature_MHZ19? "));
@@ -854,10 +952,13 @@ int AirGradient::readInternal_MHZ19() {
 
   // Is always 0 for version 14a  and 19b
   // Version 19a?: status != 0x40
-  if (debug_MHZ19 && status != 0) {
+  if (debug_MHZ19 && status != 0)
+  {
     Serial.print(F(" ! Status maybe not OK ! "));
     Serial.println(status, HEX);
-  } else if (debug_MHZ19) {
+  }
+  else if (debug_MHZ19)
+  {
     Serial.print(F(" Status  OK: "));
     Serial.println(status, HEX);
   }
@@ -866,17 +967,20 @@ int AirGradient::readInternal_MHZ19() {
   return ppm_uart;
 }
 
-
-
-uint8_t AirGradient::getCheckSum_MHZ19(unsigned char* packet) {
-  if (!SerialConfigured) {
-    if (debug_MHZ19) Serial.println(F("-- serial is not configured"));
+uint8_t AirGradient::getCheckSum_MHZ19(unsigned char *packet)
+{
+  if (!SerialConfigured)
+  {
+    if (debug_MHZ19)
+      Serial.println(F("-- serial is not configured"));
     return STATUS_serial_MHZ19_NOT_CONFIGURED;
   }
-  if (debug_MHZ19) Serial.println(F("  getCheckSum_MHZ19()"));
+  if (debug_MHZ19)
+    Serial.println(F("  getCheckSum_MHZ19()"));
   byte i;
   unsigned char checksum = 0;
-  for (i = 1; i < 8; i++) {
+  for (i = 1; i < 8; i++)
+  {
     checksum += packet[i];
   }
   checksum = 0xff - checksum;

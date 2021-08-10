@@ -48,7 +48,7 @@ boolean hasSHT=true;
 boolean connectWIFI=true;
 
 // change if you want to send the data to another server
-String APIROOT = "https://www.MYINFLUXDB.com/";
+String APIROOT = "https://wac.fzysqr.com/";
 
 void setup(){
   Serial.begin(9600);
@@ -68,7 +68,7 @@ void setup(){
 void loop(){
 
   // create payload
-  String tags = "id=" + String(ESP.getChipId(),HEX) + ",env=outside";
+  String tags = "id=" + String(ESP.getChipId(),HEX) + ",env=inside";
   String payload = "wifi," + tags + " rssi=" + String(WiFi.RSSI()) + "\n";
 
   if (hasPM) {
@@ -76,33 +76,44 @@ void loop(){
     ag.wakeUp();
     delay(30000);
 
-    // Get PM data
-    int PM1 = ag.getPM1_Raw();
-    payload=payload + "air_quality," + tags + " pm01=" + String(PM1) + "\n";
-    
-    int PM2 = ag.getPM2_Raw();
-    payload=payload + "air_quality," + tags + " pm02=" + String(PM2) + "\n";
-    
-    int PM10 = ag.getPM10_Raw();
-    payload=payload + "air_quality," + tags + " pm10=" + String(PM10) + "\n";
+    PMS_DATA result = ag.getPMS_Data();
+    // Check to see if the PMS read succeeded, otherwise report a failure and skip reporting
+    if (!result.success)
+    {
+      showTextRectangle("PMS Read", "Failure", true);
+      payload=payload + "meta," + tags + " pms_read_failure=true\n";
+      delay(10000);
+    }
+    else
+    {
+      // Get PM data
+      int PM1 = result.PM_AE_UG_1_0;
+      payload=payload + "air_quality," + tags + " pm01=" + String(PM1) + "\n";
 
-    // Put sensor to sleep again until next loop
-    ag.sleep();
-    showTextRectangle("SLEEP", "30s", true);
-    delay(2000);
+      int PM2 = result.PM_AE_UG_2_5;
+      payload=payload + "air_quality," + tags + " pm02=" + String(PM2) + "\n";
 
-    showTextRectangle("PM1",String(PM1),false);
-    delay(5000);
-    showTextRectangle("PM2",String(PM2),false);
-    delay(6000);
-    showTextRectangle("PM10",String(PM10),false);
-    delay(6000);    
+      int PM10 = result.PM_AE_UG_10_0;
+      payload=payload + "air_quality," + tags + " pm10=" + String(PM10) + "\n";
+
+      // Put sensor to sleep again until next loop
+      ag.sleep();
+      showTextRectangle("SLEEP", "30s", true);
+      delay(2000);
+
+      showTextRectangle("PM1.0",String(PM1),true);
+      delay(5000);
+      showTextRectangle("PM2.5",String(PM2),true);
+      delay(6000);
+      showTextRectangle("PM10",String(PM10),true);
+      delay(6000);
+    }
   }
 
   if (hasCO2) {
     int CO2 = ag.getCO2_Raw();
     payload=payload + "air_quality," + tags + " rco2=" + String(CO2) + "\n";
-    showTextRectangle("CO2",String(CO2),false);
+    showTextRectangle("CO2",String(CO2),true);
     delay(6000);
   }
 
@@ -110,7 +121,7 @@ void loop(){
     TMP_RH result = ag.periodicFetchData();
     payload=payload + "weather," + tags + " atmp=" + String(result.t) + "\n";
     payload=payload + "weather," + tags + " rhum=" + String(result.rh) + "\n";
-    showTextRectangle(String(result.t),String(result.rh)+"%",false);
+    showTextRectangle(String(result.t),String(result.rh)+"%",true);
     delay(5000);
   }
 
@@ -123,10 +134,10 @@ void loop(){
   // Hack to not check finger prints on https connection
   std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
   client->setInsecure();
-  
+
   HTTPClient http;
   http.begin(*client, POSTURL);
-  http.addHeader("Authorization", "Token TOKENHERE");
+  http.addHeader("Authorization", "Token 1XKQsyW-UKB5EU94ioSXiJtY-6918O0YewbobFqXzn3To9iUSioidF_EbD3OQqW1MgfsPMYOgrzwKRUW63I3IQ==");
   int httpCode = http.POST(payload);
   String response = http.getString();
   Serial.println(httpCode);
